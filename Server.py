@@ -5,11 +5,13 @@ from time import sleep
 gp.setwarnings(False)
 
 # set up visual LEDs
+green = 17
+red = 27
 gp.setmode(gp.BCM)
-gp.setup(17, gp.OUT) # green - controller connected
-gp.setup(27, gp.OUT) # red - started server.py
-gp.output(27, 1)
-gp.output(17, 0)
+gp.setup(green, gp.OUT) # green - controller connected
+gp.setup(red, gp.OUT) # red - running server.py
+gp.output(red, 1)
+gp.output(green, 0)
 
 # server setup
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,32 +22,34 @@ s.listen(1)
 
 # accept connection
 con,addr = s.accept()
-print("connected: {}, {}".format(con, addr))
-gp.output(17, 1)
+gp.output(17, 1) # turn on controller status led
 connected = True
 
+# main loop
 car = Car()
-
 while 1:
 
 	try:
+        # receive and format command to int
 		command = con.recv(1).decode()
 		command = int(command)
 
+        # update 3 to 10
 		if command == 3:
 			command = 10
 
+        # stationary command
 		if command == 0:
 			car.turnstraight()
 			car.stop()
 
-		# motor
+		# motor commands
 		if command & 1:
 			car.drivef()
 		elif command & 2:
 			car.driver()
 
-		# turning
+		# turning commands
 		if command & 4:
 			car.turnl()
 		elif command & 8:
@@ -54,16 +58,9 @@ while 1:
 	# controller disconnected
 	except:
 		connected = False
-		print("controller disconnected")
-		gp.output(17, 0)
+		gp.output(green, 0) # update controller led
 
 		while not connected:
-
-			# accept connection
-			con,addr = s.accept()
-			print("connected: {}, {}".format(con, addr))
-			gp.output(17, 1)
+			con,addr = s.accept() # reconnected
+			gp.output(green, 1) # update controller led
 			connected = True
-
-		print("will retry in 3 seconds")
-		sleep(3)
